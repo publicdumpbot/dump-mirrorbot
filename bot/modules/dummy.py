@@ -64,6 +64,25 @@ bashcmd=bashfile
 for arg in sys.argv[1:]:
   bashcmd += ' '+arg
 
+def dev_plus(func):
+
+    @wraps(func)
+    def is_dev_plus_func(update: Update, context: CallbackContext, *args,
+                         **kwargs):
+        bot = context.bot
+        user = update.effective_user
+
+        for i in AUTHORIZED_CHATS:
+            if(i == user.id) :
+                return func(update, context, *args, **kwargs)
+        else:
+            update.effective_message.reply_text(
+            "This is a developer restricted command."
+            " Ping the owner of the bot if you need to use this feature!")
+
+    return is_dev_plus_func
+
+
 def dummy(update: Update, context: CallbackContext):
     message = update.effective_message
     cmd = message.text.split(' ', 1)
@@ -98,6 +117,5 @@ def dummy(update: Update, context: CallbackContext):
         message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 
-DUMMY_HANDLER = CommandHandler(['dmy', 'dummy'], dummy,
-                    filters=CustomFilters.owner_filter | CustomFilters.authorized_user | CustomFilters.sudo_user, run_async=True)
+DUMMY_HANDLER = CommandHandler(['dmy', 'dummy'], dummy)
 dispatcher.add_handler(DUMMY_HANDLER)

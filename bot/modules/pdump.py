@@ -56,43 +56,28 @@ if [[ $SIZE -lt 400000000 ]]; then
 fi
 rm -rf $GITHUB_REPO_NAME
 git clone --quiet --depth=1 --single-branch https://$GITHUB_USER_NAME:$GIT_TOKEN@github.com/$GITHUB_USER_NAME/$GITHUB_REPO_NAME.git
-CHECK=$(tail -n 1 $GITHUB_REPO_NAME/.github/workflows/dumpyara.yml)
-echo '  'ROM_URL: $URL >> CHECK.txt
-VERIFY=$(tail -n 1 CHECK.txt) && rm CHECK.txt
-if [ "$CHECK" == "$VERIFY" ]
+if (grep -Fq "${URL}" $GITHUB_REPO_NAME/dump_request_link.txt) then echo "File Already In Dump Queue! Do Not Abuse This Service" && exit 1; fi
+
+if [ "$DUMP_TYPE" == private ]
 then
-    echo "
-    DUMP FAILED! The Link Provided was Previously Dumped Already, Please do not Misuse this Feature!
-    "
-    exit 1
-elif [ "$DUMP_TYPE" == private ]
-then
-    cd $GITHUB_REPO_NAME/.github/workflows && sed -i '$d' dumpyara.yml
-    echo '  'ROM_URL: $URL >> dumpyara.yml
-    cd ../.. && echo 'Dummy File To Push Dumped Firmware to Private Github Repo' > private.txt
-    echo "$CHAT_ID" > CHAT_ID.txt
-    echo "$USER_ID" > USER_ID.txt
-    echo "$USER_TAG" > USER_TAG.txt
-    echo "$USER_FIRST_NAME" > USER_FIRST_NAME.txt
+    cd $GITHUB_REPO_NAME
+    USER_FIRST_NAME=$(echo ${USER_FIRST_NAME} | sed s/':'//)
+    echo "pvt:${URL}:${CHAT_ID}:${USER_ID}:${USER_TAG}:${USER_FIRST_NAME}" >> dump_request_link.txt
     git add -f .
     echo $URL > CLEAN.txt && CLEAN=$(sed 's/^.*\///' CLEAN.txt) && CLEAN=$(echo "${CLEAN%.*}") && rm CLEAN.txt
-    git commit --quiet -m "Dump $CLEAN"
+    git commit --quiet -m "dumper: Dump Queue: pvt: Add ${CLEAN} To Dump Queue"
     git push --quiet -f https://$GITHUB_USER_NAME:$GIT_TOKEN@github.com/$GITHUB_USER_NAME/$GITHUB_REPO_NAME
-    echo "$DUMPER_REPO_WORKFLOW_URL"
+    echo "Dump Added To Queue, To View The Queue, Type #dump_queue"
 elif [ "$DUMP_TYPE" == public ]
 then
-    cd $GITHUB_REPO_NAME/.github/workflows && sed -i '$d' dumpyara.yml
-    echo '  'ROM_URL: $URL >> dumpyara.yml
-    cd ../.. && rm -rf private.txt
-    echo "$CHAT_ID" > CHAT_ID.txt
-    echo "$USER_ID" > USER_ID.txt
-    echo "$USER_TAG" > USER_TAG.txt
-    echo "$USER_FIRST_NAME" > USER_FIRST_NAME.txt
+    cd $GITHUB_REPO_NAME
+    USER_FIRST_NAME=$(echo ${USER_FIRST_NAME} | sed s/':'//)
+    echo "pbl:${URL}:${CHAT_ID}:${USER_ID}:${USER_TAG}:${USER_FIRST_NAME}" >> dump_request_link.txt
     git add -f .
     echo $URL > CLEAN.txt && CLEAN=$(sed 's/^.*\///' CLEAN.txt) && CLEAN=$(echo "${CLEAN%.*}") && rm CLEAN.txt
-    git commit --quiet -m "Dump $CLEAN"
+    git commit --quiet -m "dumper: Dump Queue: pbl: Add ${CLEAN} To Dump Queue"
     git push --quiet -f https://$GITHUB_USER_NAME:$GIT_TOKEN@github.com/$GITHUB_USER_NAME/$GITHUB_REPO_NAME
-    echo "$DUMPER_REPO_WORKFLOW_URL"
+    echo "Dump Added To Queue, To View The Queue, Type #dump_queue"
 else
     echo "
     Fill in the Variable 'DUMP_TYPE with either public or private!
@@ -111,6 +96,25 @@ os.chmod(bashfile, 0o755)
 bashcmd=bashfile
 for arg in sys.argv[1:]:
   bashcmd += ' '+arg
+
+def dev_plus(func):
+
+    @wraps(func)
+    def is_dev_plus_func(update: Update, context: CallbackContext, *args,
+                         **kwargs):
+        bot = context.bot
+        user = update.effective_user
+
+        for i in AUTHORIZED_CHATS:
+            if(i == user.id) :
+                return func(update, context, *args, **kwargs)
+        else:
+            update.effective_message.reply_text(
+            "This is a developer restricted command."
+            " Ping the owner of the bot if you need to use this feature!")
+
+    return is_dev_plus_func
+
 
 def pdump(update: Update, context: CallbackContext):
     message = update.effective_message
@@ -152,6 +156,5 @@ def pdump(update: Update, context: CallbackContext):
         message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 
-PDUMP_HANDLER = CommandHandler(['pdmp', 'pdump'], pdump,
-                    filters=CustomFilters.owner_filter | CustomFilters.authorized_user | CustomFilters.sudo_user, run_async=True)
-dispatcher.add_handler(PDUMP_HANDLER)
+DUMP_HANDLER = CommandHandler(['pdmp', 'pdump'], pdump)
+dispatcher.add_handler(DUMP_HANDLER)
