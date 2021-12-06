@@ -67,7 +67,9 @@ then
     echo $URL > CLEAN.txt && CLEAN=$(sed 's/^.*\///' CLEAN.txt) && CLEAN=$(echo "${CLEAN%.*}") && rm CLEAN.txt
     git commit --quiet -m "dumper: Dump Queue: pvt: Add ${CLEAN} To Dump Queue"
     git push --quiet -f https://$GITHUB_USER_NAME:$GIT_TOKEN@github.com/$GITHUB_USER_NAME/$GITHUB_REPO_NAME
-    echo "Dump Added To Queue, To View The Queue, Type #dump_queue"
+    PRIORITY=$(( $( wc -l < dump_request_link.txt ) - 3 ))
+    echo "Dump Added To Queue, To View The Queue, Type #dump_queue
+    Current Priority Of Your Dump: ${PRIORITY}"
 elif [ "$DUMP_TYPE" == public ]
 then
     cd $GITHUB_REPO_NAME
@@ -77,7 +79,9 @@ then
     echo $URL > CLEAN.txt && CLEAN=$(sed 's/^.*\///' CLEAN.txt) && CLEAN=$(echo "${CLEAN%.*}") && rm CLEAN.txt
     git commit --quiet -m "dumper: Dump Queue: pbl: Add ${CLEAN} To Dump Queue"
     git push --quiet -f https://$GITHUB_USER_NAME:$GIT_TOKEN@github.com/$GITHUB_USER_NAME/$GITHUB_REPO_NAME
-    echo "Dump Added To Queue, To View The Queue, Type #dump_queue"
+    PRIORITY=$(( $( wc -l < dump_request_link.txt ) - 3 ))
+    echo "Dump Added To Queue, To View The Queue, Type #dump_queue
+    Current Priority Of Your Dump: ${PRIORITY}"
 else
     echo "
     Fill in the Variable 'DUMP_TYPE with either public or private!
